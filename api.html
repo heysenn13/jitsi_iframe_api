@@ -1,0 +1,132 @@
+<html>
+
+<head>
+    <script src="./libs/jquery.min.js"></script>
+    <script type="text/javascript" src="./libs/qwebchannel.js"></script>
+    <script src="./libs/external_api.min.js"></script>
+    <style>
+        {
+            margin: 0;
+            padding: 0;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div id="eds-meet"></div>
+    <script>
+        var urlParts = window.location.href.split("/");
+
+        var domain = "your jitsi domain name.."
+        var confRoomName = "your confRoomName.."
+
+        var options = {
+            roomName: confRoomName,
+            parentNode: undefined,
+            configOverwrite: {}
+        }
+
+        var outputDeviceId;
+        var inputDeviceId;
+        var videoDeviceId;
+        var myVar;
+
+        var inputDeviceToSelect = "input device name...."
+        var outputDeviceToSelect = "output device namee....."
+        var videoDeviceToSelect = "video device name...."
+
+        api = new JitsiMeetExternalAPI(domain, options);
+        api.addEventListener('cameraError', () => {
+            console.log("Camera error..");
+            api.isVideoMuted().then(muted => {
+                console.log("video muted: " + muted);
+                api.executeCommand('toggleVideo', true);
+            });
+        });
+        api.addEventListener('micError', () => {
+            console.log("mic error..");
+            api.isAudioMuted().then(muted => {
+                console.log("audio muted: " + muted);
+                api.executeCommand('toggleAudio', true);
+            });
+        });
+
+        api.getAvailableDevices().then(devices => {
+            selectDevices(devices);
+
+            myVar = setInterval(getcurrent, 3000);
+
+        });
+
+        function selectDevices(devices) {
+            inputSelected = false;
+            console.log(JSON.stringify(devices));
+            $.each(devices, function (index, device) {
+
+                if (device.label == inputDeviceToSelect) {
+                    if (!inputSelected) {
+                        inputDeviceId = device.deviceId;
+                        api.setAudioInputDevice(device.label, device.deviceId);
+                        inputSelected = true;
+                    }
+                }
+            });
+            outputSelected = false;
+            $.each(devices.audioOutput, function (index, device) {
+                if (device.label == outputDeviceToSelect) {
+                    if (!outputSelected) {
+                        outputDeviceId = device.deviceId;
+                        api.setAudioOutputDevice(device.label, device.deviceId);
+                        outputSelected = true;
+                    }
+                }
+            });
+            videoSelected = false;
+            $.each(devices.videoInput, function (index, device) {
+                if (device.label == videoDeviceToSelect) {
+                    if (!videoSelected) {
+                        videoDeviceId = device.deviceId;
+                        api.setVideoInputDevice(device.label, device.deviceId);
+                        videoSelected = true;
+                    }
+                }
+            });
+
+
+        }
+
+        function getcurrent() {
+            api.getCurrentDevices().then(devices => {
+                console.log("getcurrentdevice: " + JSON.stringify(devices));
+                currentInputDevice = devices.audioInput;
+                currentOutputDevice = devices.audioOutput;
+                currentVideoDevice = devices.videoInput;
+                console.log("currentInputDevice" + currentInputDevice.label);
+                console.log("currentOutputDevice" + currentOutputDevice.label);
+                console.log("currentVideoDevice" + currentVideoDevice.label);
+                if (currentInputDevice.label == inputDeviceToSelect && currentOutputDevice.label == outputDeviceToSelect && currentVideoDevice.label == videoDeviceToSelect) {
+                    console.log("return true");
+                    console.log("Selected input: " + currentInputDevice.label);
+                    console.log("Selected output" + currentOutputDevice.label);
+                    console.log("Selected video" + currentVideoDevice.label);
+                    console.log(myVar);
+                    clearInterval(myVar);
+                }
+                else {
+                    console.log("return false");
+                    api.setAudioInputDevice(inputDeviceToSelect, inputDeviceId);
+                    api.setAudioOutputDevice(outputDeviceToSelect, outputDeviceId);
+                }
+            });
+        }
+
+        api.on('readyToClose', () => {
+                        api.dispose();
+                        clearInterval(myVar);
+ 
+        });
+    </script>
+</body>
+
+</html>
